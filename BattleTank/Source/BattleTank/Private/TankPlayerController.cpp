@@ -1,17 +1,26 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "TankPlayerController.h"
+#include "TankAimingComponent.h"
 #include "Tank.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "Engine/EngineTypes.h"
 
+
 void ATankPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	auto ControlledTank = GetPawn();
+	auto AimingComponent = GetControlledTank()->FindComponentByClass<UTankAimingComponent>();
+	if (ensure(AimingComponent))
+	{
+		FoundAimingComponent(AimingComponent);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Aimimng Component found"))
+	}
 }
 
 void ATankPlayerController::Tick(float DeltaTime)
@@ -27,7 +36,7 @@ ATank* ATankPlayerController::GetControlledTank() const
 
 void ATankPlayerController::AimTowardsCrosshair()
 {
-	if (!GetControlledTank()) { return; }
+	if (!ensure(GetControlledTank())) { return; }
 
 	FVector HitLocation; // Out parameter
 	if (GetSightRayHitLocation(HitLocation)) // Has 'side-effect', is going to line-trace
@@ -73,13 +82,14 @@ bool ATankPlayerController::GetLookVectorHitLocation(FVector LookDirection, FVec
 	FHitResult HitResult;
 	auto StartLocation = PlayerCameraManager->GetCameraLocation();
 	auto EndLocation = StartLocation + LookDirection * LineTraceRange;
-	if (
+	if
+	(
 		GetWorld()->LineTraceSingleByChannel(
-			HitResult,
-			StartLocation,
-			EndLocation,
-			ECollisionChannel::ECC_Visibility)
-		)
+		HitResult,
+		StartLocation,
+		EndLocation,
+		ECollisionChannel::ECC_Visibility)
+	)
 	{
 		HitLocation = HitResult.Location;
 		return true;
